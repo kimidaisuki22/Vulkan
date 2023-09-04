@@ -6,6 +6,11 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/ext/vector_float3.hpp"
+#include "glm/fwd.hpp"
+#include <math.h>
+#include <string>
 #if defined(_WIN32)
 #pragma comment(linker, "/subsystem:console")
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -24,6 +29,10 @@
 #include <array>
 #include <iostream>
 #include <algorithm>
+
+#include "bitmap.h"
+#include "bitmap_writer.h"
+#include "stl_loader.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -154,10 +163,11 @@ public:
 		vkDestroyFence(device, fence, nullptr);
 	}
 
-	VulkanExample()
+	VulkanExample(std::string model, glm::vec3 eye,std::string filename,int w,int h)
 	{
 		LOG("Running headless rendering example\n");
-
+		width = w;
+		height = h;
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
 		LOG("loading vulkan lib");
 		vks::android::loadVulkanLibrary();
@@ -331,16 +341,21 @@ public:
 			float position[3];
 			float color[3];
 		};
+		int index_c {};
 		{
-			std::vector<Vertex> vertices = {
-				{ {  1.0f,  1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
-				{ { -1.0f,  1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
-				{ {  0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } }
-			};
-			std::vector<uint32_t> indices = { 0, 1, 2 };
-
+			auto vs = centerlize(stl_loader::load(model));
+			
+			std::vector<Vertex> vertices;
+			vertices.resize(vs.size());
+			memcpy(vertices.data(),vs.data(), sizeof(Vertex) * vs.size());
+			std::vector<uint32_t> indices;
+			for(int i=0;i<vertices.size();i++){
+				indices.push_back(i);
+			}
+			index_c = vertices.size();
 			const VkDeviceSize vertexBufferSize = vertices.size() * sizeof(Vertex);
 			const VkDeviceSize indexBufferSize = indices.size() * sizeof(uint32_t);
+			// exit(0);
 
 			VkBuffer stagingBuffer;
 			VkDeviceMemory stagingMemory;
@@ -411,8 +426,10 @@ public:
 		/*
 			Create framebuffer attachments
 		*/
-		width = 1024;
-		height = 1024;
+		
+		// width *= 0.24 ;
+		// height *= 0.24;
+		
 		VkFormat colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
 		VkFormat depthFormat;
 		vks::tools::getSupportedDepthFormat(physicalDevice, &depthFormat);
@@ -426,7 +443,7 @@ public:
 			image.extent.depth = 1;
 			image.mipLevels = 1;
 			image.arrayLayers = 1;
-			image.samples = VK_SAMPLE_COUNT_1_BIT;
+			image.samples = VK_SAMPLE_COUNT_4_BIT;
 			image.tiling = VK_IMAGE_TILING_OPTIMAL;
 			image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
@@ -486,7 +503,7 @@ public:
 			std::array<VkAttachmentDescription, 2> attchmentDescriptions = {};
 			// Color attachment
 			attchmentDescriptions[0].format = colorFormat;
-			attchmentDescriptions[0].samples = VK_SAMPLE_COUNT_1_BIT;
+			attchmentDescriptions[0].samples = VK_SAMPLE_COUNT_4_BIT;
 			attchmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			attchmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			attchmentDescriptions[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -599,7 +616,7 @@ public:
 				vks::initializers::pipelineViewportStateCreateInfo(1, 1);
 
 			VkPipelineMultisampleStateCreateInfo multisampleState =
-				vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
+				vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_4_BIT);
 
 			std::vector<VkDynamicState> dynamicStateEnables = {
 				VK_DYNAMIC_STATE_VIEWPORT,
@@ -681,7 +698,7 @@ public:
 			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
 
 			VkClearValue clearValues[2];
-			clearValues[0].color = { { 0.0f, 0.0f, 0.2f, 1.0f } };
+			clearValues[0].color = { { 0.4f, 0.4f, 0.4f, 0.0f } };
 			clearValues[1].depthStencil = { 1.0f, 0 };
 
 			VkRenderPassBeginInfo renderPassBeginInfo = {};
@@ -715,17 +732,14 @@ public:
 			vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, offsets);
 			vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-			std::vector<glm::vec3> pos = {
-				glm::vec3(-1.5f, 0.0f, -4.0f),
-				glm::vec3( 0.0f, 0.0f, -2.5f),
-				glm::vec3( 1.5f, 0.0f, -4.0f),
-			};
-
-			for (auto v : pos) {
-				glm::mat4 mvpMatrix = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 256.0f) * glm::translate(glm::mat4(1.0f), v);
-				vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvpMatrix), &mvpMatrix);
-				vkCmdDrawIndexed(commandBuffer, 3, 1, 0, 0, 0);
-			}
+			// glm::mat4 flip{1};
+			// flip[1][1]= -1;
+			// flip[1][3] = 0.5;
+	
+			glm::mat4 mvpMatrix =  glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 2560.0f) * glm::lookAt(eye,{0,0,0},{0,0,1});
+			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvpMatrix), &mvpMatrix);
+			vkCmdDrawIndexed(commandBuffer,index_c , 1, 0, 0, 0);
+			
 
 			vkCmdEndRenderPass(commandBuffer);
 
@@ -839,12 +853,10 @@ public:
 #if defined (VK_USE_PLATFORM_ANDROID_KHR)
 			const char* filename = strcat(getenv("EXTERNAL_STORAGE"), "/headless.ppm");
 #else
-			const char* filename = "headless.ppm";
 #endif
-			std::ofstream file(filename, std::ios::out | std::ios::binary);
+	 
 
-			// ppm header
-			file << "P6\n" << width << "\n" << height << "\n" << 255 << "\n";
+			Bitmap<> bitmap{width,height};
 
 			// If source is BGR (destination is always RGB) and we can't use blit (which does automatic conversion), we'll have to manually swizzle color components
 			// Check if source is BGR and needs swizzle
@@ -855,21 +867,14 @@ public:
 			for (int32_t y = 0; y < height; y++) {
 				unsigned int *row = (unsigned int*)imagedata;
 				for (int32_t x = 0; x < width; x++) {
-					if (colorSwizzle) {
-						file.write((char*)row + 2, 1);
-						file.write((char*)row + 1, 1);
-						file.write((char*)row, 1);
-					}
-					else {
-						file.write((char*)row, 3);
-					}
+ 					memcpy(&bitmap[y][x],(char*)row, 4);
 					row++;
 				}
 				imagedata += subResourceLayout.rowPitch;
-			}
-			file.close();
-
-			LOG("Framebuffer image saved to %s\n", filename);
+			} 
+			flip_v(bitmap);
+			write_bitmap(filename, bitmap);
+			LOG("Framebuffer image saved to %s\n", filename.c_str());
 
 			// Clean up resources
 			vkUnmapMemory(device, dstImageMemory);
@@ -941,18 +946,30 @@ void android_main(android_app* state) {
 }
 #else
 int main(int argc, char* argv[]) {
-	commandLineParser.add("help", { "--help" }, 0, "Show help");
-	commandLineParser.add("shaders", { "-s", "--shaders" }, 1, "Select shader type to use (glsl or hlsl)");
-	commandLineParser.parse(argc, argv);
-	if (commandLineParser.isSet("help")) {
-		commandLineParser.printHelp();
-		std::cin.get();
-		return 0;
-	}	
-	VulkanExample *vulkanExample = new VulkanExample();
-	std::cout << "Finished. Press enter to terminate...";
-	std::cin.get();
-	delete(vulkanExample);
+			// glm::vec3 eye;
+			// eye[dir%3] = (dir>=3?-1:1) * 200;
+			// if(dir %3 == 2){
+			// 	eye.x += 0.03;
+			// 	eye.y += 0.03;
+			// }
+	const int total = 60;
+	const float Pi = 3.14159f;
+	for(int dir= 0;dir<total;dir++){
+		const float d = 200;
+		glm::vec3 eye;
+
+		eye.x = sin(dir * 1.0f /total * Pi * 2);
+		eye.y = cos(dir * 1.0f /total * Pi * 2);
+
+		eye *=d;
+		auto s = std::to_string(dir);
+		while(s.size()<3){
+			s = "0"+ s;
+		}
+		VulkanExample *vulkanExample = new VulkanExample(argc>1? argv[1]:"bunny.stl",  eye,s+".png",512,512);
+		delete(vulkanExample);
+	}
+	std::cout << "Finished.\n";
 	return 0;
 }
 #endif

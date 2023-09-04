@@ -17,7 +17,7 @@ include_directories(base)
 OPTION(USE_D2D_WSI "Build the project using Direct to Display swapchain" OFF)
 OPTION(USE_DIRECTFB_WSI "Build the project using DirectFB swapchain" OFF)
 OPTION(USE_WAYLAND_WSI "Build the project using Wayland swapchain" OFF)
-OPTION(USE_HEADLESS "Build the project using headless extension swapchain" OFF)
+OPTION(USE_HEADLESS "Build the project using headless extension swapchain" ON)
 
 set(RESOURCE_INSTALL_DIR "" CACHE PATH "Path to install resources to (leave empty for running uninstalled)")
 
@@ -124,8 +124,8 @@ if(RESOURCE_INSTALL_DIR)
 	install(DIRECTORY assets/ DESTINATION ${RESOURCE_INSTALL_DIR}/)
 	install(DIRECTORY shaders/ DESTINATION ${RESOURCE_INSTALL_DIR}/shaders/)
 else()
-	add_definitions(-DVK_EXAMPLE_ASSETS_DIR=\"${CMAKE_SOURCE_DIR}/assets/\")
-	add_definitions(-DVK_EXAMPLE_SHADERS_DIR=\"${CMAKE_SOURCE_DIR}/shaders/\")
+	add_definitions(-DVK_EXAMPLE_ASSETS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/assets/\")
+	add_definitions(-DVK_EXAMPLE_SHADERS_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/shaders/\")
 endif()
 
 # Compiler specific stuff

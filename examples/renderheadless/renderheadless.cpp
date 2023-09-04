@@ -344,7 +344,7 @@ public:
 		int index_c {};
 		{
 			auto vs = centerlize(stl_loader::load(model));
-			
+
 			std::vector<Vertex> vertices;
 			vertices.resize(vs.size());
 			memcpy(vertices.data(),vs.data(), sizeof(Vertex) * vs.size());
@@ -426,10 +426,10 @@ public:
 		/*
 			Create framebuffer attachments
 		*/
-		
+
 		// width *= 0.24 ;
 		// height *= 0.24;
-		
+
 		VkFormat colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
 		VkFormat depthFormat;
 		vks::tools::getSupportedDepthFormat(physicalDevice, &depthFormat);
@@ -443,7 +443,7 @@ public:
 			image.extent.depth = 1;
 			image.mipLevels = 1;
 			image.arrayLayers = 1;
-			image.samples = VK_SAMPLE_COUNT_4_BIT;
+			image.samples = VK_SAMPLE_COUNT_1_BIT;
 			image.tiling = VK_IMAGE_TILING_OPTIMAL;
 			image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
@@ -503,7 +503,7 @@ public:
 			std::array<VkAttachmentDescription, 2> attchmentDescriptions = {};
 			// Color attachment
 			attchmentDescriptions[0].format = colorFormat;
-			attchmentDescriptions[0].samples = VK_SAMPLE_COUNT_4_BIT;
+			attchmentDescriptions[0].samples = VK_SAMPLE_COUNT_1_BIT;
 			attchmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			attchmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			attchmentDescriptions[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -616,7 +616,7 @@ public:
 				vks::initializers::pipelineViewportStateCreateInfo(1, 1);
 
 			VkPipelineMultisampleStateCreateInfo multisampleState =
-				vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_4_BIT);
+				vks::initializers::pipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
 
 			std::vector<VkDynamicState> dynamicStateEnables = {
 				VK_DYNAMIC_STATE_VIEWPORT,
@@ -698,7 +698,7 @@ public:
 			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
 
 			VkClearValue clearValues[2];
-			clearValues[0].color = { { 0.4f, 0.4f, 0.4f, 0.0f } };
+			clearValues[0].color = { { 0.4f, 0.4f, 0.4f, 1.0f } };
 			clearValues[1].depthStencil = { 1.0f, 0 };
 
 			VkRenderPassBeginInfo renderPassBeginInfo = {};
@@ -735,11 +735,11 @@ public:
 			// glm::mat4 flip{1};
 			// flip[1][1]= -1;
 			// flip[1][3] = 0.5;
-	
+
 			glm::mat4 mvpMatrix =  glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 2560.0f) * glm::lookAt(eye,{0,0,0},{0,0,1});
 			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mvpMatrix), &mvpMatrix);
 			vkCmdDrawIndexed(commandBuffer,index_c , 1, 0, 0, 0);
-			
+
 
 			vkCmdEndRenderPass(commandBuffer);
 
@@ -854,7 +854,7 @@ public:
 			const char* filename = strcat(getenv("EXTERNAL_STORAGE"), "/headless.ppm");
 #else
 #endif
-	 
+
 
 			Bitmap<> bitmap{width,height};
 
@@ -871,7 +871,7 @@ public:
 					row++;
 				}
 				imagedata += subResourceLayout.rowPitch;
-			} 
+			}
 			flip_v(bitmap);
 			write_bitmap(filename, bitmap);
 			LOG("Framebuffer image saved to %s\n", filename.c_str());

@@ -6,9 +6,7 @@
 * This code is licensed under the MIT license (MIT) (http://opensource.org/licenses/MIT)
 */
 
-#include "glm/ext/matrix_transform.hpp"
-#include "glm/ext/vector_float3.hpp"
-#include "glm/fwd.hpp"
+
 #include <math.h>
 #include <string>
 #if defined(_WIN32)
@@ -38,6 +36,9 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/ext/vector_float3.hpp"
+#include "glm/fwd.hpp"
 
 #if defined(VK_USE_PLATFORM_MACOS_MVK)
 #define VK_ENABLE_BETA_EXTENSIONS
@@ -698,7 +699,7 @@ public:
 			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &cmdBufInfo));
 
 			VkClearValue clearValues[2];
-			clearValues[0].color = { { 0.4f, 0.4f, 0.4f, 1.0f } };
+			clearValues[0].color = { { 0.4f, 0.4f, 0.4f, 0.2f } };
 			clearValues[1].depthStencil = { 1.0f, 0 };
 
 			VkRenderPassBeginInfo renderPassBeginInfo = {};
@@ -956,10 +957,12 @@ int main(int argc, char* argv[]) {
 	const float Pi = 3.14159f;
 	for(int dir= 0;dir<total;dir++){
 		const float d = 200;
-		glm::vec3 eye;
+		glm::vec3 eye{};
 
 		eye.x = sin(dir * 1.0f /total * Pi * 2);
 		eye.y = cos(dir * 1.0f /total * Pi * 2);
+
+		std::cout << eye.x <<" " << eye.y <<" " << eye.z <<"\n";
 
 		eye *=d;
 		auto s = std::to_string(dir);
